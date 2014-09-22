@@ -334,8 +334,16 @@ static ClusterPrePermissions *__sharedInstance;
 
 - (void) showActualPushNotificationPermissionAlert
 {
-    //Modify this to change which type of push notifications are allowed
-    [[UIApplication sharedApplication] registerForRemoteNotificationTypes:(UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
+	if ([[UIApplication sharedApplication] respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+		UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:(UIRemoteNotificationTypeBadge
+																							 |UIRemoteNotificationTypeSound
+																							 |UIRemoteNotificationTypeAlert) categories:nil];
+		[[UIApplication sharedApplication] registerUserNotificationSettings:settings];
+	} else {
+		//Modify this to change which type of push notifications are allowed
+		[[UIApplication sharedApplication] registerForRemoteNotificationTypes:(UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
+	}
+	
     [self firePushNotificationPermissionCompletionHandler];
 }
 
@@ -365,7 +373,13 @@ static ClusterPrePermissions *__sharedInstance;
 
 - (PushAuthorizationStatus)pushAuthorizationStatus
 {
-    UIRemoteNotificationType types = [[UIApplication sharedApplication] enabledRemoteNotificationTypes];
+	UIRemoteNotificationType types;
+	
+	if ([[UIApplication sharedApplication] respondsToSelector:@selector(currentUserNotificationSettings)]) {
+		types = [[UIApplication sharedApplication] currentUserNotificationSettings].types;
+	} else {
+		types = [[UIApplication sharedApplication] enabledRemoteNotificationTypes];
+	}
     
     if(types) {
         return kPushAuthorizationStatusAuthorized;
