@@ -334,6 +334,10 @@ static ClusterPrePermissions *__sharedInstance;
 
 - (void) showActualPushNotificationPermissionAlert
 {
+	//Modify this to change which type of push notifications are allowed
+	[[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"pushNotification"];
+	[[NSUserDefaults standardUserDefaults] synchronize];
+
 	if ([[UIApplication sharedApplication] respondsToSelector:@selector(registerUserNotificationSettings:)]) {
 		UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:(UIRemoteNotificationTypeBadge
 																							 |UIRemoteNotificationTypeSound
@@ -373,23 +377,17 @@ static ClusterPrePermissions *__sharedInstance;
 
 - (PushAuthorizationStatus)pushAuthorizationStatus
 {
-	UIRemoteNotificationType types;
-	
-	if ([[UIApplication sharedApplication] respondsToSelector:@selector(currentUserNotificationSettings)]) {
-		types = [[UIApplication sharedApplication] currentUserNotificationSettings].types;
-	} else {
-		types = [[UIApplication sharedApplication] enabledRemoteNotificationTypes];
-	}
-    
-    if(types) {
-        return kPushAuthorizationStatusAuthorized;
-    }
-    bool didRegisterforPush =[[NSUserDefaults standardUserDefaults] boolForKey:@"pushNotification"];
-    //If true, they declined to receive push notifications from the actual dialog
-    if(didRegisterforPush) {
-        return kPushAuthorizationStatusDenied;
-    }
-    return kPushAuthorizationStatusNotDetermined;
+    	if ( ![[NSUserDefaults standardUserDefaults] boolForKey:@"pushNotification"] ) {
+		return kPushAuthorizationStatusNotDetermined;
+    	}
+
+    	bool authorized = [[NSUserDefaults standardUserDefaults] boolForKey:@"pushNotification"];
+
+    	if (authorized) {
+		return kPushAuthorizationStatusAuthorized;
+    	}
+
+    	return kPushAuthorizationStatusDenied;
 }
 
 
@@ -426,6 +424,8 @@ static ClusterPrePermissions *__sharedInstance;
     } else if (alertView == self.prePushNotificationPermissionAlertView) {
         if (buttonIndex == alertView.cancelButtonIndex) {
             //User said NO, that jerk.
+            [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"pushNotification"];
+            [[NSUserDefaults standardUserDefaults] synchronize];
             [self firePushNotificationPermissionCompletionHandler];
         } else {
             //User granted access, now show the real permission dialog for push notifications
